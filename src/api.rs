@@ -136,7 +136,7 @@ impl Error for ApiError {
 
 pub async fn download(post: &Post, to: &Path) -> Result<(), Box<dyn Error>> {
     let url = post.file.url.as_ref()
-        .ok_or(ApiError::new("post has no downloadable file"))?;
+        .ok_or(ApiError::new("post has no downloadable file (a tag might be blacklisted)"))?;
 
     let mut file = File::create(to)?;
 

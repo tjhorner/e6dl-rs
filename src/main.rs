@@ -2,7 +2,7 @@ use structopt::StructOpt;
 use std::path::{PathBuf, Path};
 use futures::StreamExt;
 use std::error::Error;
-use log::{info, error};
+use log::{info, error, debug};
 use std::fs;
 
 extern crate pretty_env_logger;
@@ -75,7 +75,7 @@ async fn download_all(posts: Vec<api::Post>, to: &Path, concurrency: usize) -> R
         let result = api::download(&post, &file_name).await;
 
         match result {
-            Ok(_) => info!("Downloaded post {}!", post.id),
+            Ok(_) => debug!("Downloaded post {}!", post.id),
             Err(e) => error!("Error downloading post {}: {}", post.id, e)
         }
     });
@@ -85,6 +85,8 @@ async fn download_all(posts: Vec<api::Post>, to: &Path, concurrency: usize) -> R
         .collect::<Vec<_>>();
 
     fetches.await;
+
+    info!("Done!");
 
     Ok(())
 }
