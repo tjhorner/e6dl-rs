@@ -148,12 +148,12 @@ pub async fn download(post: &Post, to: &Path) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub async fn search(tags: &String, limit: &u32, page: &String, sfw: &bool) -> reqwest::Result<Vec<Post>> {
+pub async fn search(tags: &str, limit: u32, page: &str, sfw: bool) -> reqwest::Result<Vec<Post>> {
     let client = Client::new();
 
     debug!("Sending search request (tags = {}, limit = {}, page = {}, sfw = {})", tags, limit, page, sfw);
 
-    let domain = if *sfw { "e926.net" } else { "e621.net" };
+    let domain = if sfw { "e926.net" } else { "e621.net" };
 
     debug!("Using domain {}", domain);
 
@@ -161,8 +161,8 @@ pub async fn search(tags: &String, limit: &u32, page: &String, sfw: &bool) -> re
         .header(reqwest::header::USER_AGENT, "e6dl: rust edition (@tjhorner on Telegram)")
         .query(&[
             ("tags", tags),
+            ("page", page),
             ("limit", &limit.to_string()),
-            ("page", &page.to_string())
         ])
         .send()
         .await?;
