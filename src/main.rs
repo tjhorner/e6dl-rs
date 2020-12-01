@@ -51,7 +51,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     info!("Searching for \"{}\" (page {}, limit {})...", args.tags, args.page, args.limit);
 
-    let results = api::search(&args.tags, &args.limit, &args.page).await;
+    let results = api::search(&args.tags, &args.limit, &args.page, &args.sfw).await;
 
     match results {
         Ok(posts) => {
