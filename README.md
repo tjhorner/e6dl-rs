@@ -1,5 +1,7 @@
 # e6dl-rs
 
+![](https://user-images.githubusercontent.com/2646487/100818051-35aa6000-33fe-11eb-9cd6-b79e18d3fc58.gif)
+
 This is a command line tool for downloading posts that match certain tags on e621 or e926.
 
 It's [this](https://github.com/tjhorner/e6dl) ported to Rust, which was actually originally [ported from JS](https://github.com/tjhorner/e621-id-downloader). I am not Good At The Rust™️ yet, so I am using this project to get Good At The Rust™️. (i.e., the code is probably bad and not idiomatic). If you see areas I could improve, just let me know using an issue.
