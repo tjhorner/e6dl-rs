@@ -67,7 +67,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     info!("Searching for \"{}\"...", args.tags);
 
-    let results = collect_pages(&args).await;
+    let results = collect_posts(&args).await;
 
     match results {
         Ok(posts) => {
@@ -86,7 +86,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn collect_pages(args: &Cli) -> Result<Vec<api::Post>, Box<dyn std::error::Error>> {
+async fn collect_posts(args: &Cli) -> Result<Vec<api::Post>, Box<dyn std::error::Error>> {
     if args.pages == 1 {
         info!("Collecting posts from page {}...", args.page);
         return api::search(&args.tags, args.limit, &args.page, args.sfw).await;
