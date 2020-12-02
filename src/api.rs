@@ -148,7 +148,7 @@ pub async fn download(post: &Post, to: &Path) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub async fn search(tags: &str, limit: u32, page: &str, sfw: bool) -> reqwest::Result<Vec<Post>> {
+pub async fn search(tags: &str, limit: u32, page: &str, sfw: bool) -> Result<Vec<Post>, Box<dyn std::error::Error>> {
     let client = Client::new();
 
     debug!("Sending search request (tags = {}, limit = {}, page = {}, sfw = {})", tags, limit, page, sfw);
