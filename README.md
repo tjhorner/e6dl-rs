@@ -27,6 +27,9 @@ OPTIONS:
     -c, --concurrency <concurrency>
             Maximum number of concurrent downloads [default: 5]
 
+    -g, --group <group>...
+            Save downloaded posts grouped by the specified grouping. You can specify multiple groupings. See:
+            https://github.com/tjhorner/e6dl-rs/wiki/Post-Grouping
     -l, --limit <limit>
             The maximum number of posts that should be retrieved per page. There is a hard limit of 320 [default: 10]
 
