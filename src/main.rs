@@ -5,10 +5,61 @@ use std::error::Error;
 use log::{info, error, warn, debug};
 use std::fs;
 use std::process;
+use std::str::FromStr;
 
 extern crate pretty_env_logger;
 
 mod api;
+mod errors;
+
+#[derive(Debug)]
+enum PostGrouping {
+    Pool,
+    Rating,
+    Artist,
+    FileType,
+    Tag(String),
+}
+
+impl PostGrouping {
+    fn matches_post(&self, post: &api::Post) -> bool {
+        match self {
+            PostGrouping::Pool => !post.pools.is_empty(),
+            PostGrouping::Rating | PostGrouping::FileType => true,
+            PostGrouping::Artist => !post.tags.artist.is_empty(),
+            PostGrouping::Tag(tag) => post.tags.contains(tag)
+        }
+    }
+
+    fn post_group(&self, post: &api::Post) -> String {
+        match self {
+            PostGrouping::Pool => format!("pool_{}", post.pools.first().unwrap()).to_string(),
+            PostGrouping::Rating => post.rating.to_string(),
+            PostGrouping::FileType => post.file.ext.to_string(),
+            PostGrouping::Artist => post.tags.artist.first().unwrap().to_string(),
+            PostGrouping::Tag(tag) => tag.to_string()
+        }
+    }
+}
+
+impl FromStr for PostGrouping {
+    type Err = errors::ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.starts_with("tag:") {
+            let split: Vec<&str> = s.split(":").collect();
+            return Ok(PostGrouping::Tag(split[1].to_string()));
+        }
+
+        match s {
+            "pool" => Ok(PostGrouping::Pool),
+            "rating" => Ok(PostGrouping::Rating),
+            "artist" => Ok(PostGrouping::Artist),
+            "filetype" => Ok(PostGrouping::FileType),
+            _ => Err(errors::ParseError::new(&format!("invalid post grouping `{}`", s)))
+        }
+    }
+}
 
 #[derive(StructOpt, Debug)]
 struct Cli {
@@ -47,6 +98,11 @@ struct Cli {
     /// Maximum number of concurrent downloads.
     #[structopt(short, long, default_value = "5")]
     concurrency: usize,
+
+    /// Save downloaded posts grouped by the specified groupings. You can specify
+    /// multiple groupings. See: https://github.com/tjhorner/e6dl-rs/wiki/Post-Grouping
+    #[structopt(short, long)]
+    group: Vec<PostGrouping>,
 }
 
 #[tokio::main]
@@ -78,7 +134,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             let out_dir = args.out.as_path();
             info!("Found {} posts matching criteria, downloading to \"{}\"...", posts.len(), out_dir.to_str().unwrap());
-            download_all(posts, out_dir, args.concurrency).await?;
+            download_all(posts, out_dir, &args.group, args.concurrency).await?;
         },
         Err(e) => error!("Could not search for posts: {}", e)
     }
@@ -95,7 +151,7 @@ async fn collect_posts(args: &Cli) -> Result<Vec<api::Post>, Box<dyn std::error:
     let mut all_posts = Vec::<api::Post>::new();
 
     // We did a check earlier (in main) to make sure this worked.
-    let starting_page = args.page.parse::<u32>().expect("starting page was not numerical");
+    let starting_page = args.page.parse::<u32>().expect("starting page was not numeric");
     let ending_page = starting_page + args.pages;
 
     info!("Collecting posts from up to {} pages, starting with page {}...", args.pages, starting_page);
@@ -120,11 +176,24 @@ async fn collect_posts(args: &Cli) -> Result<Vec<api::Post>, Box<dyn std::error:
     Ok(all_posts)
 }
 
-async fn download_all(posts: Vec<api::Post>, to: &Path, concurrency: usize) -> Result<(), Box<dyn std::error::Error>> {
+async fn download_all(posts: Vec<api::Post>, to: &Path, grouping: &Vec<PostGrouping>, concurrency: usize) -> Result<(), Box<dyn std::error::Error>> {
     fs::create_dir_all(&to)?;
 
     let downloads = posts.into_iter().map( |post| async move {
-        let file_name = to.join(format!("{}.{}", post.id, post.file.ext));
+        let mut file_name = to.to_path_buf();
+
+        if !grouping.is_empty() {
+            for group in grouping {
+                if !group.matches_post(&post) { continue }
+                file_name.push(group.post_group(&post));
+                if let Err(e) = fs::create_dir_all(&file_name) {
+                    error!("Couldn't create directory for post {}: {}", post.id, e);
+                }
+                break;
+            }
+        }
+
+        file_name.push(format!("{}.{}", post.id, post.file.ext));
 
         info!("Downloading post {} -> {}...", post.id, file_name.to_str().unwrap());
         let result = api::download(&post, &file_name).await;

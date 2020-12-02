@@ -6,6 +6,7 @@ use std::fs::File;
 use core::fmt;
 use std::error::Error;
 use log::debug;
+use std::string::ToString;
 
 #[derive(Deserialize, Debug)]
 pub struct PostFile {
@@ -49,6 +50,19 @@ pub struct PostTags {
     pub invalid: Vec<String>,
     pub lore: Vec<String>,
     pub meta: Vec<String>,
+}
+
+impl PostTags {
+    pub fn contains(&self, tag: &String) -> bool {
+        self.general.contains(tag) ||
+        self.species.contains(tag) ||
+        self.character.contains(tag) ||
+        self.copyright.contains(tag) ||
+        self.artist.contains(tag) ||
+        self.invalid.contains(tag) ||
+        self.lore.contains(tag) ||
+        self.meta.contains(tag)
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -104,6 +118,16 @@ pub enum PostRating {
     Questionable,
     #[serde(rename = "e")]
     Explicit
+}
+
+impl ToString for PostRating {
+    fn to_string(&self) -> String {
+        match self {
+            PostRating::Safe => "safe",
+            PostRating::Questionable => "questionable",
+            PostRating::Explicit => "explicit"
+        }.to_string()
+    }
 }
 
 #[derive(Deserialize)]
