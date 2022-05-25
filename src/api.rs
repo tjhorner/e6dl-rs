@@ -1,7 +1,8 @@
 use serde::Deserialize;
 use reqwest::{self, Client};
+use tokio::stream::StreamExt;
 use std::path::Path;
-use std::io;
+use std::io::Write;
 use std::fs::File;
 use core::fmt;
 use std::error::Error;
@@ -166,8 +167,12 @@ pub async fn download(post: &Post, to: &Path) -> Result<(), Box<dyn Error>> {
 
     let res = reqwest::get(url).await?;
 
-    let bytes = res.bytes().await?;
-    io::copy(&mut bytes.as_ref(), &mut file)?;
+    let mut download_stream = res.bytes_stream();
+    while let Some(bytes) = download_stream.next().await {
+        if let Err(e) = file.write_all(&bytes?) {
+            return Err(Box::new(e));
+        }
+    }
 
     Ok(())
 }
