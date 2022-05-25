@@ -1,5 +1,7 @@
 [package]
 name = "e6dl"
+description = "Batch download CLI for e621 or e926"
+repository = "https://github.com/tjhorner/e6dl-rs"
 version = "0.4.0"
 authors = ["TJ Horner <tj@tjtjtj.tj>"]
 edition = "2021"
