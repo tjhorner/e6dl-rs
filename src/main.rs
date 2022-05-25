@@ -47,7 +47,7 @@ impl FromStr for PostGrouping {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with("tag:") {
-            let split: Vec<&str> = s.split(":").collect();
+            let split: Vec<&str> = s.split(':').collect();
             return Ok(PostGrouping::Tag(split[1].to_string()));
         }
 
@@ -107,7 +107,7 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    if let Err(_) = std::env::var("E6DL_LOG") {
+    if std::env::var("E6DL_LOG").is_err() {
         std::env::set_var("E6DL_LOG", "info");
     }
 
@@ -127,7 +127,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     match results {
         Ok(posts) => {
-            if posts.len() == 0 {
+            if posts.is_empty() {
                 warn!("No posts to download!");
                 return Ok(());
             }
@@ -162,7 +162,7 @@ async fn collect_posts(args: &Cli) -> Result<Vec<api::Post>, Box<dyn std::error:
 
         match results {
             Ok(mut posts) => {
-                if posts.len() == 0 {
+                if posts.is_empty() {
                     info!("No more posts on page {}; reached end of search results.", page_num);
                     break;
                 }
@@ -181,8 +181,8 @@ async fn download(post: &api::Post, to: &Path, grouping: &Vec<PostGrouping>) {
 
     if !grouping.is_empty() {
         for group in grouping {
-            if !group.matches_post(&post) { continue }
-            file_name.push(group.post_group(&post));
+            if !group.matches_post(post) { continue }
+            file_name.push(group.post_group(post));
             if let Err(e) = fs::create_dir_all(&file_name) {
                 error!("Couldn't create directory for post {}: {}", post.id, e);
             }
@@ -193,7 +193,7 @@ async fn download(post: &api::Post, to: &Path, grouping: &Vec<PostGrouping>) {
     file_name.push(format!("{}.{}", post.id, post.file.ext));
 
     info!("Downloading post {} -> {}...", post.id, file_name.to_str().unwrap());
-    let result = api::download(&post, &file_name).await;
+    let result = api::download(post, &file_name).await;
 
     match result {
         Ok(_) => debug!("Done downloading post {}", post.id),
