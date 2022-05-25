@@ -1,8 +1,8 @@
 [package]
 name = "e6dl"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["TJ Horner <tj@tjtjtj.tj>"]
-edition = "2018"
+edition = "2021"
 license = "MIT"
 
 [profile.release]
