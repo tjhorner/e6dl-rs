@@ -176,7 +176,11 @@ async fn collect_posts(args: &Cli) -> Result<Vec<api::Post>, Box<dyn std::error:
     Ok(all_posts)
 }
 
-async fn download(post: &api::Post, to: &Path, grouping: &Vec<PostGrouping>) {
+async fn download(
+    post: &api::Post,
+    to: &Path,
+    grouping: &Vec<PostGrouping>
+) {
     let mut file_name = to.to_path_buf();
 
     if !grouping.is_empty() {
@@ -201,7 +205,12 @@ async fn download(post: &api::Post, to: &Path, grouping: &Vec<PostGrouping>) {
     }
 }
 
-async fn download_all(posts: &Vec<api::Post>, to: &Path, grouping: &Vec<PostGrouping>, concurrency: usize) -> Result<(), Box<dyn std::error::Error>> {
+async fn download_all(
+    posts: &Vec<api::Post>,
+    to: &Path,
+    grouping: &Vec<PostGrouping>,
+    concurrency: usize
+) -> Result<(), Box<dyn std::error::Error>> {
     fs::create_dir_all(&to)?;
 
     futures::stream::iter(posts)
