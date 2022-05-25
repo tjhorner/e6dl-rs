@@ -1,6 +1,6 @@
+use futures::StreamExt;
 use serde::Deserialize;
 use reqwest::{self, Client};
-use tokio::stream::StreamExt;
 use std::path::Path;
 use std::io::Write;
 use std::fs::File;
