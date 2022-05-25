@@ -33,7 +33,7 @@ impl PostGrouping {
 
     fn post_group(&self, post: &api::Post) -> String {
         match self {
-            PostGrouping::Pool => format!("pool_{}", post.pools.first().unwrap()).to_string(),
+            PostGrouping::Pool => format!("pool_{}", post.pools.first().unwrap()),
             PostGrouping::Rating => post.rating.to_string(),
             PostGrouping::FileType => post.file.ext.to_string(),
             PostGrouping::Artist => post.tags.artist.first().unwrap().to_string(),
@@ -113,7 +113,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     pretty_env_logger::init_custom_env("E6DL_LOG");
 
-    let args: Cli = Cli::from_args();
+    let args = Cli::from_args();
 
     // Make sure `page` is numeric if `pages` > 1
     if args.pages > 1 && args.page.parse::<u32>().is_err() {
@@ -134,7 +134,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             let out_dir = args.out.as_path();
             info!("Found {} posts matching criteria, downloading to \"{}\"...", posts.len(), out_dir.to_str().unwrap());
-            download_all(posts, out_dir, &args.group, args.concurrency).await?;
+            download_all(&posts, out_dir, &args.group, args.concurrency).await?;
         },
         Err(e) => error!("Could not search for posts: {}", e)
     }
@@ -148,7 +148,7 @@ async fn collect_posts(args: &Cli) -> Result<Vec<api::Post>, Box<dyn std::error:
         return api::search(&args.tags, args.limit, &args.page, args.sfw).await;
     }
 
-    let mut all_posts = Vec::<api::Post>::new();
+    let mut all_posts = Vec::new();
 
     // We did a check earlier (in main) to make sure this worked.
     let starting_page = args.page.parse::<u32>().expect("starting page was not numeric");
@@ -176,39 +176,37 @@ async fn collect_posts(args: &Cli) -> Result<Vec<api::Post>, Box<dyn std::error:
     Ok(all_posts)
 }
 
-async fn download_all(posts: Vec<api::Post>, to: &Path, grouping: &Vec<PostGrouping>, concurrency: usize) -> Result<(), Box<dyn std::error::Error>> {
+async fn download(post: &api::Post, to: &Path, grouping: &Vec<PostGrouping>) {
+    let mut file_name = to.to_path_buf();
+
+    if !grouping.is_empty() {
+        for group in grouping {
+            if !group.matches_post(&post) { continue }
+            file_name.push(group.post_group(&post));
+            if let Err(e) = fs::create_dir_all(&file_name) {
+                error!("Couldn't create directory for post {}: {}", post.id, e);
+            }
+            break;
+        }
+    }
+
+    file_name.push(format!("{}.{}", post.id, post.file.ext));
+
+    info!("Downloading post {} -> {}...", post.id, file_name.to_str().unwrap());
+    let result = api::download(&post, &file_name).await;
+
+    match result {
+        Ok(_) => debug!("Done downloading post {}", post.id),
+        Err(e) => error!("Error downloading post {}: {}", post.id, e)
+    }
+}
+
+async fn download_all(posts: &Vec<api::Post>, to: &Path, grouping: &Vec<PostGrouping>, concurrency: usize) -> Result<(), Box<dyn std::error::Error>> {
     fs::create_dir_all(&to)?;
 
-    let downloads = posts.into_iter().map( |post| async move {
-        let mut file_name = to.to_path_buf();
-
-        if !grouping.is_empty() {
-            for group in grouping {
-                if !group.matches_post(&post) { continue }
-                file_name.push(group.post_group(&post));
-                if let Err(e) = fs::create_dir_all(&file_name) {
-                    error!("Couldn't create directory for post {}: {}", post.id, e);
-                }
-                break;
-            }
-        }
-
-        file_name.push(format!("{}.{}", post.id, post.file.ext));
-
-        info!("Downloading post {} -> {}...", post.id, file_name.to_str().unwrap());
-        let result = api::download(&post, &file_name).await;
-
-        match result {
-            Ok(_) => debug!("Done downloading post {}", post.id),
-            Err(e) => error!("Error downloading post {}: {}", post.id, e)
-        }
-    });
-
-    let fetches = futures::stream::iter(downloads)
-        .buffer_unordered(concurrency)
-        .collect::<Vec<_>>();
-
-    fetches.await;
+    futures::stream::iter(posts)
+        .for_each_concurrent(concurrency, |post| download(post, to, grouping))
+        .await;
 
     info!("Done!");
 
