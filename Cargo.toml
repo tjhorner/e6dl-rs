@@ -13,12 +13,11 @@ panic = "abort"
 
 [dependencies]
 structopt = "0.3.26"
-
 reqwest = { version = "0.11.10", features = ["json", "stream"] }
 tokio = { version = "1.18.2", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 futures = "0.3.21"
-
+owo = "0.1.1"
 log = "0.4.17"
 pretty_env_logger = "0.4.0"
 
